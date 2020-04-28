@@ -6,6 +6,7 @@ import seaborn as sns
 sns.set_style('whitegrid')
 import plotly.express as px        # basics charts
 import plotly.figure_factory as ff # density
+import plotly.graph_objects as go
 
 #TODO lendo os dados
 
@@ -94,10 +95,6 @@ dados.get('CountryOfExploitation').value_counts() # pais de exploracao
 #! referencia deste no dicinario, acredito fortemente 
 #! que tbm correspondam a informacoes ausentes 
 
-dados.query('citizenship != "0" & CountryOfExploitation != "0"',inplace=True)
-
-dados.shape # 39071
-
 #TODO sexo das pessoas
 dados.get('gender').value_counts(dropna = False)/dados.shape[0]*100
 
@@ -139,60 +136,15 @@ sns.countplot(x = 'ageBroad', data = dados,color='blue')\
 #TODO status maioridade 
 #? Indica se o indivíduo tinha menos de 18 no momento em que foi registrado 
 dados.get('majorityStatus').value_counts(dropna = False)
-# Adult    20840
-# NaN      12348
-# Minor     5883
 
 #TODO Status Maioridade Na Exploracao
 #? A idade do indivíduo na época que a exploração do indivíduo começou
 dados.get('majorityStatusAtExploit').value_counts(dropna = False)
-# NaN      34998
-# Minor     2524
-# Adult     1549
 
 #TODO Maioridade Entrada
 #? Indica a idade de um indivíduo no momento em que entrou no processo de tráfico. 
 #? A exploração não ocorreu necessariamente no momento da entrada.
 dados.get('majorityEntry').value_counts(dropna = False)
-# NaN      32882
-# Adult     5301
-# Minor      888
-
-#TODO adicionando os nomes dos paises de nascimento e exploracao além de longitude e latitude
-dados.get('citizenship').head()
-lon_lat_country.head()
-
-dados = dados.merge(
-    lon_lat_country,
-    left_on = 'citizenship',
-    right_on = 'country',
-    how = 'left'
-)
-
-dados.rename(
-    columns={'name':'nacionalidade',
-    'latitude':'nacionalidade_lat',
-    'longitude':'nacionalidade_long'},
-     inplace = True) 
-
-dados.columns
-dados.drop(columns = 'country',inplace=True)
-
-dados = dados.merge(
-    lon_lat_country,
-    left_on = 'CountryOfExploitation',
-    right_on = 'country',
-    how = 'left'
-)
-
-dados.rename(
-    columns={'name':'pais_exploracao',
-    'latitude':'pais_exploracao_lat',
-    'longitude':'pais_exploracao_long'},
-     inplace = True) 
-
-dados.drop(columns = 'country',inplace=True)
-dados.columns
 
 # TODO: Meios de controle 
 # meansOfControlConcatenated simplesmente concatena os demais meios
@@ -221,26 +173,7 @@ means
 
 means.query('index!=index').sort_values(by = 'Porcentagem')
 # com excecao de ControlNotSpecified todos os demais 
-# meios de controle apresentam no minimo 89% de NaN
-
-# NaN              meansOfControlNotSpecified     0.305700
-# NaN        meansOfControlPsychologicalAbuse     0.890917
-# NaN         meansOfControlRestrictsMovement     0.900719
-# NaN                   meansOfControlThreats     0.904942
-# NaN             meansOfControlFalsePromises     0.907092
-# NaN             meansOfControlTakesEarnings     0.909600
-# NaN             meansOfControlPhysicalAbuse     0.912032
-# NaN     meansOfControlExcessiveWorkingHours     0.916844
-# NaN        meansOfControlWithholdsDocuments     0.919941
-# NaN      meansOfControlRestrictsMedicalCare     0.937908
-# NaN      meansOfControlWithholdsNecessities     0.942515
-# NaN               meansOfControlDebtBondage     0.943129
-# NaN    meansOfControlPsychoactiveSubstances     0.946636
-# NaN               meansOfControlSexualAbuse     0.948530
-# NaN                     meansOfControlOther     0.949246
-# NaN    meansOfControlThreatOfLawEnforcement     0.950552
-# NaN  meansOfControlRestrictsFinancialAccess     0.995879
-# NaN              meansOfControlUsesChildren     0.997722
+# meios de controle apresentam no minimo 87% de NaN
 
 #TODO investigando alguns meios de controle especificos ao longo do tempo
 # controle por ameacas
@@ -350,9 +283,51 @@ relacionamento = (
 
 relacionamento
 
-# TODO: Mapas Choropleth
+#! Retirando observacoes sem nacionalidade ou pais 
+#! de exploracao para desenvolvimento dos mapas
 
-import plotly.graph_objects as go
+dados.query('citizenship != "0" & CountryOfExploitation != "0"',inplace=True)
+
+dados.shape # 39071
+
+#TODO adicionando os nomes dos paises de nascimento e exploracao além de longitude e latitude
+dados.get('citizenship').head()
+lon_lat_country.head()
+
+dados = dados.merge(
+    lon_lat_country,
+    left_on = 'citizenship',
+    right_on = 'country',
+    how = 'left'
+)
+
+dados.rename(
+    columns={'name':'nacionalidade',
+    'latitude':'nacionalidade_lat',
+    'longitude':'nacionalidade_long'},
+     inplace = True) 
+
+dados.columns
+dados.drop(columns = 'country',inplace=True)
+
+dados = dados.merge(
+    lon_lat_country,
+    left_on = 'CountryOfExploitation',
+    right_on = 'country',
+    how = 'left'
+)
+
+dados.rename(
+    columns={'name':'pais_exploracao',
+    'latitude':'pais_exploracao_lat',
+    'longitude':'pais_exploracao_long'},
+     inplace = True) 
+
+dados.drop(columns = 'country',inplace=True)
+dados.columns
+
+dados.head()
+# TODO: Mapas Choropleth
 
 # * citizenship: nacionalidade
 
@@ -378,6 +353,7 @@ alpha
 
 map_chor = map_chor.merge(alpha, how='left',left_on='code',right_on='alpha_2')
 map_chor.drop(columns=['alpha_2'],inplace = True)
+map_chor.head()
 
 fig = go.Figure(data=go.Choropleth(
     locations = map_chor['alpha_3'],
@@ -432,7 +408,6 @@ fig.show()
 map_chor = dados.get('CountryOfExploitation').value_counts().reset_index()
 map_chor.rename(columns={'index':'code','CountryOfExploitation':'contagem'}, inplace=True)
 map_chor.head()
-map_chor.shape # 58
 
 lon_lat_country.head()
 map_chor = map_chor.merge(
@@ -445,12 +420,9 @@ map_chor.drop(columns=['country'],inplace = True)
 
 map_chor.head()
 
-# o padrao de codigo do plotly é o de alpha 3
-alpha = pd.read_csv('alpha2_alpha3.csv')
-alpha
-
 map_chor = map_chor.merge(alpha, how='left',left_on='code',right_on='alpha_2')
 map_chor.drop(columns=['alpha_2'],inplace = True)
+map_chor.head()
 
 fig = go.Figure(data=go.Choropleth(
     locations = map_chor['alpha_3'],
@@ -552,19 +524,18 @@ dados_lines_group = dados_lines_group.merge(
 dados_lines_group.head()
 dados_lines_group.shape
 
-
 dados_lines_group = ( 
-dados_lines_group
-.assign(
-    texto = 'Nacionalidade: '+ 
-    dados_lines_group['nacionalidade'] + 
-    '<br>' +
-    'Pais exploração: ' + 
-    dados_lines_group['pais_exploracao']+
-    '<br>' +
-    'Quantidade de pessoas: ' +
-    dados_lines_group['quantidade'].astype(str)
-)
+    dados_lines_group
+    .assign(
+        texto = 'Nacionalidade: '+ 
+        dados_lines_group['nacionalidade'] + 
+        '<br>' +
+        'Pais exploração: ' + 
+        dados_lines_group['pais_exploracao']+
+        '<br>' +
+        'Quantidade de pessoas: ' +
+        dados_lines_group['quantidade'].astype(str)
+        )
 )
 
 cores = pd.DataFrame(
@@ -617,7 +588,6 @@ fig.update_layout(
 )
 
 fig.show()
-
 
 
 fig = go.Figure()
