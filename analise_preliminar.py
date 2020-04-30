@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 sns.set_style('whitegrid')
-import plotly.express as px        # basics charts
-import plotly.figure_factory as ff # density
+
+import plotly.express as px        
 import plotly.graph_objects as go
 
 #TODO lendo os dados
@@ -21,6 +22,16 @@ dados.head()
 lon_lat_country = pd.read_excel('lon_lat_country.xlsx')
 lon_lat_country.shape # 244, 4
 lon_lat_country.head()
+lon_lat_country.isna().sum()
+
+lon_lat_country.query('country!=country') 
+# o código de Namibia é NA mas esta sendo considerado
+# como ausente isto irá afetar os merges posteriores
+
+# No arquivo Global Dataset nao há nenhuma observacao com código 
+# referente a Namibia (verificacao feita no proprio arquivo)
+
+lon_lat_country['country'] = np.where(lon_lat_country['country'].isna(),'NA',lon_lat_country['country'])
 
 #TODO analise de valores ausentes
 ausentes = pd.DataFrame(\
@@ -92,8 +103,8 @@ dados.get('CountryOfExploitation').value_counts() # pais de exploracao
 
 #! tanto no pais de exploracao como na nacionalidade há o código 0,
 #! este nao corresponde a nenhum codigo da ISO 3166-1 e nao ha
-#! referencia deste no dicinario, acredito fortemente 
-#! que tbm correspondam a informacoes ausentes 
+#! referencia deste no dicinario, acredito que tbm correspondam 
+#! a informacoes ausentes ou provavelmente anonimizadas
 
 #TODO sexo das pessoas
 dados.get('gender').value_counts(dropna = False)/dados.shape[0]*100
@@ -106,8 +117,6 @@ dados.get('gender').value_counts(dropna = False)/dados.shape[0]*100
 )
 
 # definindo as categorias de ageBroad para ficarem ordenadas em tabelas e graficos
-
-list(dados.get('ageBroad').value_counts(dropna = False).reset_index().get('index'))
 
 levels_ageBroad = pd.CategoricalDtype(
     categories = ['0--8','9--17','18--20','21--23','24--26','27--29','30--38','39--47', '48+'],
@@ -327,6 +336,7 @@ dados.drop(columns = 'country',inplace=True)
 dados.columns
 
 dados.head()
+
 # TODO: Mapas Choropleth
 
 # * citizenship: nacionalidade
@@ -349,7 +359,12 @@ map_chor.head()
 
 # o padrao de codigo do plotly é o de alpha 3
 alpha = pd.read_csv('alpha2_alpha3.csv')
-alpha
+alpha.isna().sum()
+alpha.query("alpha_2!=alpha_2").head()
+# assim como no arquivo de longitude latitude o NA de 
+# namibia esta sendo considerado observacao ausente
+
+alpha['alpha_2'] = np.where(alpha['alpha_2'].isna(),"NA",alpha['alpha_2'])
 
 map_chor = map_chor.merge(alpha, how='left',left_on='code',right_on='alpha_2')
 map_chor.drop(columns=['alpha_2'],inplace = True)
@@ -359,12 +374,12 @@ fig = go.Figure(data=go.Choropleth(
     locations = map_chor['alpha_3'],
     z = map_chor['contagem'],
     text = map_chor['name'],
-    colorscale = 'Blues',
+    colorscale = 'Viridis',
     autocolorscale=False,
-    reversescale=True,
+    reversescale=False,
     marker_line_color='darkgray',
     marker_line_width=0.5,
-    colorbar_title = 'Quantidade',
+    colorbar_title = 'Quantidade'
 ))
 
 fig.update_layout(
@@ -384,9 +399,9 @@ fig = go.Figure(data=go.Choropleth(
     locations = map_chor['alpha_3'],
     z = map_chor['contagem'],
     text = map_chor['name'],
-    colorscale = 'Blues',
+    colorscale = 'Viridis',
     autocolorscale=False,
-    reversescale=True,
+    reversescale=False,
     marker_line_color='darkgray',
     marker_line_width=0.5,
     colorbar_title = 'Quantidade',
@@ -428,9 +443,9 @@ fig = go.Figure(data=go.Choropleth(
     locations = map_chor['alpha_3'],
     z = map_chor['contagem'],
     text = map_chor['name'],
-    colorscale = 'Blues',
+    colorscale = 'Viridis',
     autocolorscale=False,
-    reversescale=True,
+    reversescale=False,
     marker_line_color='darkgray',
     marker_line_width=0.5,
     colorbar_title = 'Quantidade',
@@ -453,9 +468,9 @@ fig = go.Figure(data=go.Choropleth(
     locations = map_chor['alpha_3'],
     z = map_chor['contagem'],
     text = map_chor['name'],
-    colorscale = 'Blues',
+    colorscale = 'Viridis',
     autocolorscale=False,
-    reversescale=True,
+    reversescale=False,
     marker_line_color='darkgray',
     marker_line_width=0.5,
     colorbar_title = 'Quantidade',
@@ -485,44 +500,25 @@ dados_lines = (
 )
 
 dados_lines.head()
-dados_lines.shape
+
+# como agora será plotado o fluxo do trafico de pessoas 
+# necessito tanto da nacionalidade como do pais de exploracao
+
+dados_lines.dropna(inplace = True)
 
 dados_lines_group = (
     dados_lines
-    .get(['nacionalidade','pais_exploracao'])
-    .groupby(['nacionalidade','pais_exploracao'])
-    .agg(
-       quantidade = ('pais_exploracao','count')
-    )
-    .reset_index()
+    .groupby(['nacionalidade_lat',
+    'nacionalidade_long',
+    'nacionalidade',
+    'pais_exploracao_lat',
+    'pais_exploracao_long',
+    'pais_exploracao'])
+    .size().reset_index(name = 'quantidade')
 )
 
 dados_lines_group.head()
-dados_lines_group.shape
-
-dados_lines_group = (
-    dados_lines_group
-    .merge(
-        dados_lines
-        .get(['nacionalidade','nacionalidade_long','nacionalidade_lat'])
-        .drop_duplicates(),
-        how = 'outer',
-        on = 'nacionalidade'
-        )
-)
-dados_lines_group.head()
-dados_lines_group.shape
-
-dados_lines_group = dados_lines_group.merge(
-        dados_lines
-        .get(['pais_exploracao','pais_exploracao_long','pais_exploracao_lat'])
-        .drop_duplicates(),
-        how = 'left',
-        on = 'pais_exploracao'
-        )
-
-dados_lines_group.head()
-dados_lines_group.shape
+dados_lines_group.shape # 100
 
 dados_lines_group = ( 
     dados_lines_group
@@ -540,10 +536,9 @@ dados_lines_group = (
 
 cores = pd.DataFrame(
     dict(nacionalidade = dados_lines_group.get('nacionalidade').drop_duplicates(),
-    cor = sns.color_palette('hls', dados_lines_group.get('nacionalidade').drop_duplicates().shape[0]).as_hex()
-    )
-    )
-cores
+    cor = sns.color_palette('hls', dados_lines_group.get('nacionalidade').drop_duplicates().shape[0]).as_hex())
+)
+cores.head()
 
 dados_lines_group = dados_lines_group.merge(
     cores,
