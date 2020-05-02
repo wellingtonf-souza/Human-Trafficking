@@ -404,7 +404,7 @@ fig = go.Figure(data=go.Choropleth(
     reversescale=False,
     marker_line_color='darkgray',
     marker_line_width=0.5,
-    colorbar_title = 'Quantidade',
+    colorbar_title = 'Quantidade'
 ))
 
 fig.update_layout(
@@ -567,7 +567,7 @@ for i in range(0,dados_lines_group.shape[0]):
             line = dict(
                 width = 2, color = dados_lines_group['cor'][i]
             ),
-            text = dados_lines_group['texto'][i],
+            text = dados_lines_group['texto'][i]
         )
     )
 
