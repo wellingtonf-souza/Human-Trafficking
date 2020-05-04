@@ -486,6 +486,7 @@ def main():
             nac_exp_select_proposito)
         st.plotly_chart(choropleth_nacionalidade(dados_nac_exp,nac_exp_type))
         st.plotly_chart(choropleth_pais_exploracao(dados_nac_exp,nac_exp_type))
+        st.info('Para melhor visualização basta clicar em "fullscreen" nas imagens.')
     if(menu == 'Fluxo do tráfico'):
         st.title('Fluxo do tráfico de pessoas no mundo')
         fluxo_type = st.sidebar.radio(
@@ -530,6 +531,7 @@ def main():
             default = 'Todos'
         )
         st.plotly_chart(map_lines(dados_fluxo,fluxo_type,fluxo_select_nacionalidade,fluxo_select_pais_exploracao))
+        st.info('Para melhor visualização basta clicar em "fullscreen" na imagem.')
         st.sidebar.info('Importante salientar que neste mapa não estão presentes os indivíduos explorados no próprio país.')
  
 if __name__ == '__main__':
